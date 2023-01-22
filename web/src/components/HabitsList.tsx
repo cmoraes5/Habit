@@ -1,31 +1,93 @@
 import * as Checkbox from '@radix-ui/react-checkbox';
+import dayjs from 'dayjs';
 import { Check } from 'phosphor-react';
+import { useEffect, useState } from 'react';
+import { api } from '../lib/axios';
 
+interface HabitListProps {
+    date: Date;
+    onCompletedChanged: (completed: number) => void
+}
 
-export function HabitsList() {
+interface HabistInfo {
+    possibleHabits: {
+        id: string;
+        title: string;
+        created_at: string;
+    }[],
+    completedHabits: string[],
+}
+
+export function HabitsList({ date, onCompletedChanged }: HabitListProps) {
+    const [habitsInfo, setHabitsInfo] = useState<HabistInfo>()
+
+    useEffect(() => {
+        api.get('day', {
+            params: {
+                date: date.toISOString(),
+            }
+        }).then(response => {
+            setHabitsInfo(response.data)
+        })
+    }, [])
+
+    async function handleToggleHabit(habitId: string) {
+        await api.patch(`/habits/${habitId}/toggle`)
+
+        const isHabitAlreadyCompleted = habitsInfo!.completedHabits.includes(habitId)
+
+        let completedHabits: string[] = []
+
+        if (isHabitAlreadyCompleted) {
+            completedHabits = habitsInfo!.completedHabits.filter(id => id !== habitId)
+        } else {
+            completedHabits = [...habitsInfo!.completedHabits, habitId]
+        }
+
+        setHabitsInfo({
+            possibleHabits: habitsInfo!.possibleHabits,
+            completedHabits,
+        })
+
+        onCompletedChanged(completedHabits.length)
+    }
+
+    const isDateInPast = dayjs(date).
+        endOf('day').
+        isBefore(new Date())
+
     return (
 
+        <div className="mt-6 flex flex-col gap-3">
+            {habitsInfo?.possibleHabits.map(habit => {
+                return (
 
-                    <div className="mt-6 flex flex-col gap-3">
                     <Checkbox.Root
-                            style={{
-                                outline: 'none',
-                                padding: 0,
-                                border:'none'
-                            }}
-                            className="flex items-center gap-3 group"
-                        >
+                        key={habit.id}
+                        onCheckedChange={() => handleToggleHabit(habit.id)}
+                        checked={habitsInfo.completedHabits.includes(habit.id)}
+                        disabled={isDateInPast}
+                        style={{
+                            outline: 'none',
+                            padding: 0,
+                            border: 'none'
+                        }}
+                        className="flex items-center gap-3 group"
+                    >
 
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-zinc-900 border-2 border-zinc-800 group-data-[state=checked]:bg-green-500 group-data-[state=checked]:border-green-500 transition-all">
-                                <Checkbox.Indicator>
-                                    <Check size={20} color="white"/>
-                                </Checkbox.Indicator>
-                            </div>
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-zinc-900 border-2 border-zinc-800 group-data-[state=checked]:bg-green-500 group-data-[state=checked]:border-green-500 transition-all">
+                            <Checkbox.Indicator>
+                                <Check size={20} color="white" />
+                            </Checkbox.Indicator>
+                        </div>
 
-                            <span className="font-semibold text-xl text-white leading-tight group-data-[state=checked]:line-through group-data-[state=checked]:text-zinc-400 transition-all">
-                                Beber 2L de água
-                            </span>
-                        </Checkbox.Root>
-                    </div>
+                        <span className="font-semibold text-xl text-white leading-tight group-data-[state=checked]:line-through group-data-[state=checked]:text-zinc-400 transition-all">
+                            {habit.title}
+                        </span>
+                    </Checkbox.Root>
+                )
+            })}
+
+        </div>
     )
 }
