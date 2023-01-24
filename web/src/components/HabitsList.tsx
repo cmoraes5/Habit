@@ -9,7 +9,7 @@ interface HabitListProps {
     onCompletedChanged: (completed: number) => void
 }
 
-interface HabistInfo {
+interface HabitsInfo {
     possibleHabits: {
         id: string;
         title: string;
@@ -19,7 +19,7 @@ interface HabistInfo {
 }
 
 export function HabitsList({ date, onCompletedChanged }: HabitListProps) {
-    const [habitsInfo, setHabitsInfo] = useState<HabistInfo>()
+    const [habitsInfo, setHabitsInfo] = useState<HabitsInfo>()
 
     useEffect(() => {
         api.get('day', {
